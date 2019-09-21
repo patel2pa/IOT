@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy import signal
+import statistics 
+
 data = pd.read_csv('14_steps.csv')
  
 x = []
@@ -17,90 +19,69 @@ for d in range(len(data['x'])):
  
  
 ysmoothed = gaussian_filter1d(x, sigma = 4)
-plt.plot(ysmoothed)
 
 
-
-def SlotAnalysis(SmoothedArray):
+def StartingandStopingPointFinder(SmoothedArray):
     
     slopChanges = []
-    for num in SmoothedArray:
+    count = 0
+    while count < len(SmoothedArray):
         
-        
-    print(SmoothedArray)
+        slopChanges.append(statistics.stdev(SmoothedArray[count:count+5]))
+        count = count + 5
 
+    NonZeros = [0,0]
+    zeros = [0,0]
+    startingPointFound = False
+    endingPointFound = False
+    starting = 0
+    ending = 0
     
-#StartCounting(yysmoothed)   
-
-
-newArray = []
+    for num in range(len(slopChanges)):
         
-#for num in range(len(yysmoothed)):
+        if slopChanges[num]<2:
+            
+            if zeros[0] == 2:
+                NonZeros[0] = 0
+                NonZeros[1] = 0 
+            if zeros[1] == 0:    
+                zeros[1] = num
+            zeros[0] = zeros[0] + 1
+            
+        elif slopChanges[num]>2:
+            
+            if NonZeros[0] == 2:
+                zeros[0] = 0
+                zeros[1] = 0
+            if NonZeros[1] == 0:
+                NonZeros[1] = num
+            NonZeros[0] = NonZeros[0] + 1
+            
+        if NonZeros[0]>20:
+            starting = NonZeros[1]
+            startingPointFound = True
+            
+        if startingPointFound == True and zeros[0] > 3:
+            ending = zeros[1]
+            endingPointFound = True
+            
+        if endingPointFound == True:
+            break
+            
+    print(NonZeros)
+    print(zeros)
+    print(slopChanges)
+    print(starting)
+    print(ending)
+    return SmoothedArray[starting*5:ending*5]
     
         
+            
+    
+  
+plt.plot(gaussian_filter1d(x, sigma = 4))  
+b = StartandStopValues(x)
+plt.plot(gaussian_filter1d(b, sigma = 4))
+        
+            
 plt.show()
-
-
-'''
- 
-test = []
-for z in range(len(yysmoothed)):
-    if z == 0:
-        continue
-    else:
-        test.append((yysmoothed[z]-yysmoothed[z-1])/1)
- 
-plt.plot(test)
-plt.show()
-'''
- 
-'''
-from __future__ import division
-  
-import numpy as np
-  
-fL = 0.1  # Cutoff frequency as a fraction of the sampling rate (in (0, 0.5)).
-fH = 0.4  # Cutoff frequency as a fraction of the sampling rate (in (0, 0.5)).
-b = 0.08  # Transition band, as a fraction of the sampling rate (in (0, 0.5)).
-N = int(np.ceil((4 / b)))
-if not N % 2: N += 1  # Make sure that N is odd.
-n = np.arange(N)
-  
-# Compute a low-pass filter with cutoff frequency fL.
-hlpf = np.sinc(2 * fL * (n - (N - 1) / 2))
-hlpf *= np.blackman(N)
-hlpf /= np.sum(hlpf)
-  
-# Compute a high-pass filter with cutoff frequency fH.
-hhpf = np.sinc(2 * fH * (n - (N - 1) / 2))
-hhpf *= np.blackman(N)
-hhpf /= np.sum(hhpf)
-hhpf = -hhpf
-hhpf[(N - 1) // 2] += 1
-  
-# Add both filters.
-h = hlpf + hhpf
-'''
- 
-'''
-import scipy
-import numpy as np
-from scipy import signal
-from matplotlib import pyplot as plt
-def butter_bandpass(lowcut, highcut, fs, order=5, label=None):
-    nyq = 0.5 * fs
-    low = lowcut / nyq
-    high = highcut / nyq
-    sos = signal.butter(order, [low, high], btype='band', output='sos')
-    w, h = signal.sosfreqz(sos,worN=20000)
-    plt.semilogx((fs * 0.5 / np.pi) * w, abs(h), label=label)
-    return sos
- 
-center_freqs = np.array([0.5* 2 ** (n * 1 / 3.) for n in range(0, 29)])
-center_freqs.sort()
-lower_freqs = 2. ** (-1 / 6.) * center_freqs
-for lf in lower_freqs:
-    butter_bandpass(lf, lf*2**(1/3.), fs=1000, order=5)
- 
-plt.show()
-'''
