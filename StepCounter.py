@@ -4,32 +4,40 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
-from scipy import signal
-import statistics 
-
-data = pd.read_csv('48_steps.csv')
-
-x = []
-
-for d in range(len(data['x'])):
-    #print(data['x'][d])
-    mag = (data['x'][d])**2 + (data['y'][d])**2 + (data['z'][d])**2
-    x.append(math.sqrt(mag))
+import statistics
 
 
+'''
+Python scripts for finding steps,
+some assumptions:
+    1)The structure of the data is going to be zero acceleration 
+    followed by the step data
+    2)The step data is continuous, not break or no interruption  
+'''
 
-ysmoothed = gaussian_filter1d(x, sigma = 2)
+
+#gets the data
+def getData(fileName):
+    data = pd.read_csv(fileName)
+    StepData = []
+    for d in range(len(data['x'])):
+        magnitudeData = (data['x'][d])**2 + (data['y'][d])**2 + (data['z'][d])**2
+        StepData.append(math.sqrt(magnitudeData))
+    return StepData
 
 
+#finds the starting and stopping positions
 def StartingandStopingPointFinder(SmoothedArray):
-    
     slopChanges = []
     count = 0
-    while count < len(SmoothedArray):
-        
+    
+    while count < len(SmoothedArray):  
         slopChanges.append(statistics.stdev(SmoothedArray[count:count+5]))
         count = count + 5
-
+        
+    standerDv = np.array(slopChanges)
+    meanOfArray = standerDv.mean()
+    
     NonZeros = [0,0]
     zeros = [0,0]
     startingPointFound = False
@@ -38,9 +46,7 @@ def StartingandStopingPointFinder(SmoothedArray):
     ending = 0
     
     for num in range(len(slopChanges)):
-        
-        if slopChanges[num]<2:
-            
+        if slopChanges[num]<2:          
             if zeros[0] == 2:
                 NonZeros[0] = 0
                 NonZeros[1] = 0 
@@ -48,8 +54,7 @@ def StartingandStopingPointFinder(SmoothedArray):
                 zeros[1] = num
             zeros[0] = zeros[0] + 1
             
-        elif slopChanges[num]>2:
-            
+        elif slopChanges[num]>2:          
             if NonZeros[0] == 2:
                 zeros[0] = 0
                 zeros[1] = 0
@@ -57,29 +62,21 @@ def StartingandStopingPointFinder(SmoothedArray):
                 NonZeros[1] = num
             NonZeros[0] = NonZeros[0] + 1
             
-        if NonZeros[0]>20:
+        if NonZeros[0]>20 and startingPointFound == False:
             starting = NonZeros[1]
             startingPointFound = True
-            
-        if startingPointFound == True and zeros[0] > 3:
+
+        if zeros[0] > 3 and ((((standerDv[num:]).mean())/meanOfArray) < .70) and startingPointFound == True:
             ending = zeros[1]
             endingPointFound = True
             
         if endingPointFound == True:
             break
-            
-    print(NonZeros)
-    print(zeros)
-    print(slopChanges)
-    print(starting)
-    print(ending)
+       
     return SmoothedArray[starting*5:ending*5], slopChanges
-      
-#plt.plot(gaussian_filter1d(x, sigma = 4))  
-a,b = StartingandStopingPointFinder(x)
-#plt.plot(gaussian_filter1d(b, sigma = 4))
-#plt.plot(gaussian_filter1d(b,sigma = 4))       
 
+
+#positive slop is 1 and negative slop is -1
 def getSlop(inputArray):
     array_ = []
     for t in range(len(inputArray)):
@@ -89,8 +86,9 @@ def getSlop(inputArray):
             array_.append(-1)
     return array_
 
-def CountTheOnes(inputArray):
 
+#Counts the steps
+def CountTheOnes(inputArray):
     CountOfOnes = 0
     iterationPlace = 0
     consecutiveOnes  = 0
@@ -105,12 +103,13 @@ def CountTheOnes(inputArray):
             consecutiveOnes = 0
             iterationPlace = iterationPlace + 1
     return CountOfOnes
-   
-q = getSlop(gaussian_filter1d(a, sigma = 4))
-plt.plot(q)
-plt.plot(gaussian_filter1d(a, sigma = 4))
-plt.show()
-u = CountTheOnes(q)
+
+
+GetData = getData('14_steps.csv')
+GetStartAndStop, standerDV = StartingandStopingPointFinder(GetData)
+GetSlop = getSlop(gaussian_filter1d(GetStartAndStop, sigma = 4))
+GetCount = CountTheOnes(GetSlop)
+print(GetCount)
 
 
  
