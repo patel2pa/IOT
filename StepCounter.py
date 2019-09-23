@@ -109,7 +109,7 @@ GetData = getData('14_steps.csv')
 GetStartAndStop, standerDV = StartingandStopingPointFinder(GetData)
 GetSlop = getSlop(gaussian_filter1d(GetStartAndStop, sigma = 4))
 GetCount = CountTheOnes(GetSlop)
-print(GetCount)
-
+print('steps count is:', GetCount)
+ 
 
  
